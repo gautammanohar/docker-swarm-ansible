@@ -1,0 +1,116 @@
+# First copy the PDF docs to the NFS file system
+- name: Copy the static content to the NFS shared folder.
+  copy:
+    src: "{{ role_path }}/files/docker/app/PDFs/"
+    dest: "{{ nfs_mount_dir }}"
+
+# Create directory to place application and dockerfiles
+- name: Create the tmp Directory to place the App code and Dockerfile
+  file:
+    path: "{{ docker_tmp_dir }}"
+    state: directory
+
+# Copy the Application code
+- name: Copy the Application code
+  copy:
+    src: "{{ role_path }}/files/docker/app/Code"
+    dest: "{{ docker_tmp_dir }}"
+
+# Copy the Dockerfile
+- name: Copy the Dockerfile to build the container
+  copy:
+    src: "{{ role_path }}/files/docker/Dockerfile"
+    dest: "{{ docker_tmp_dir }}"
+
+# Ensure the correct mysql host
+- name: Ensuring that we put the correct Mysql host address
+  replace:
+    dest: "{{ docker_tmp_dir }}/Code/src/main/resources/application.properties"
+    regexp: 'localhost'
+    replace: "{{ hostvars['mysql_box']['mysql_private_ip'] }}"
+  changed_when: false
+  failed_when: false
+
+# Ensure correct Mysql password
+- name: Ensure correct password is used in the application.
+  replace:
+    dest: "{{ docker_tmp_dir }}/Code/src/main/resources/application.properties"
+    regexp: '^spring\.datasource\.password=(.*)$'
+    replace: "spring.datasource.password={{ mysql_root_pass }}"
+  changed_when: false
+  failed_when: false
+
+# If environment is production then we don't the application settings
+# to create database,schema,data ...etc. Remove the appropriate line.
+- name: Remove [spring.jpa.hibernate.ddl-auto] setting.
+  replace:
+    dest: "{{ docker_tmp_dir }}/Code/src/main/resources/application.properties"
+    regexp: '^spring\.jpa\.hibernate\.ddl-auto=(.*)$'
+    replace: ""
+  when: app_environment == "production"
+
+# If environment is production then create the database and import the data.
+# Ensure that the python-mysqldb is present to run production routines
+- name: APT | Install python-mysqldb package for production environment
+  apt: name=python-mysqldb state=present
+  when: app_environment == "production"
+
+- name: APT | Install mysql-client for importing the data to the remote mysqlhost
+  apt: name=mysql-client state=present
+  when: app_environment == "production"
+
+
+# Import the schema
+- name: Import the schema
+  mysql_db:
+    state: import
+    name: "{{ app_database_name }}"
+    target: "{{ docker_tmp_dir }}//Code/src/main/resources/createdb-script.sql"
+    login_user: "{{ mysql_user }}"
+    login_password: "{{ mysql_root_pass }}"
+    login_host: "{{ hostvars['mysql_box']['mysql_private_ip'] }}"
+  when: app_environment == "production"
+
+# Import the seed data
+- name: Import the seed Data
+  mysql_db:
+    state: import
+    name: "{{ app_database_name }}"
+    target: "{{ docker_tmp_dir }}//Code/src/main/resources/data.sql"
+    login_user: "{{ mysql_user }}"
+    login_password: "{{ mysql_root_pass }}"
+    login_host: "{{ hostvars['mysql_box']['mysql_private_ip'] }}"
+  when: app_environment == "production"
+
+# Create our custom application image
+- name: Build the Application image
+  docker_image:
+     path: "{{ docker_tmp_dir }}"
+     name: "{{ app_name }}"
+
+- name: Log into DockerHub
+  docker_login:
+    username: <username>
+    password: <password>
+    email: gautam@shopperstomp.com
+
+# Tag and push the image to Dockerhub
+- name: Tag and push to docker hub
+  docker_image:
+    name: "{{ app_name }}"
+    repository: "{{ docker_hub_repo }}"
+    tag: latest
+    push: yes
+
+# Start the docker service
+- name: Start the docker Service
+  shell: >
+    docker service create --name "{{ docker_service_name }}"
+    --replicas "{{ docker_service_replicas }}"
+    --publish 80:8080
+    --mount type=bind,src="{{ nfs_mount_dir }}",dst="{{ app_path }}"
+    --reserve-cpu "{{ docker_service_reserve_cpu }}"
+    --reserve-memory "{{ docker_service_reserve_memory }}"
+    --limit-cpu "{{ docker_service_limit_cpu }}"
+    --limit-memory "{{ docker_service_limit_memory }}"
+    "{{ docker_hub_repo }}"

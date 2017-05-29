@@ -1,0 +1,10 @@
+[mysqld_safe]
+log-error               = /var/log/mysql/mysql_error.log
+
+[mysqld]
+log-error               = /var/log/mysql/mysql_error.log
+general_log             = 1
+general_log_file        = /var/log/mysql/mysql_general.log
+slow_query_log          = 1
+slow_query_log_file     = /var/log/mysql/mysql_slow.log
+long_query_time         = 2

@@ -1,0 +1,32 @@
+---
+#### swarm.yml
+#
+# Overview: Playbook to configure Swarm manager and nodes.
+# Applies to: production OR development
+# Description:
+#   This playbook affects to host groups :
+#     - swarmmasters
+#     - swarmhosts
+#   For a given swarmmaster, roles are applied to initiate the Docker swarm.
+#   The join-token for the swarm is saved as a fact. The swarm nodes are then
+#   configured to use the join-token to join the initiated Swarm.
+###########
+- hosts: swarmmasters
+  remote_user: ubuntu
+  become: true
+  become_method: sudo
+  gather_facts: True
+  roles:
+      - common
+      - swarmmaster
+      - efsmount
+
+- hosts: swarmhosts
+  remote_user: ubuntu
+  become: true
+  become_method: sudo
+  gather_facts: True
+  roles:
+      - common
+      - swarmnode
+      - efsmount

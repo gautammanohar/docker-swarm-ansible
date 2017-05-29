@@ -1,0 +1,41 @@
+# AWS VPC Creation
+- name: Creating VPC to host Docker Swarm and Mysql instances
+  local_action:
+    module: ec2_vpc
+    region: "{{ vpc_region }}"
+    state: present
+    cidr_block: "{{ vpc_cidr }}/16"
+    resource_tags: {"Name":"{{ vpc_name }}"}
+    subnets:
+      - cidr: "{{ swarm_cidr }}/24"
+        az: "{{ vpc_subnet_swarm_az }}"
+        resource_tags: { "Name":"{{ swarm_subnet_name }}","Tier":"{{ swarm_subnet_tier }}" }
+        internet_gateway: True
+      - cidr: "{{ mysql_cidr }}/24"
+        az: "{{ vpc_subnet_mysql_az }}"
+        resource_tags: { "Name":"{{ mysql_subnet_name }}","Tier":"{{ mysql_subnet_tier }}" }
+        internet_gateway: True
+    internet_gateway: yes
+    route_tables:
+      - subnets:
+          - "{{ swarm_cidr }}/24"
+          - "{{ mysql_cidr }}/24"
+        routes:
+          - dest: 0.0.0.0/0
+            gw: igw
+  register: vpc
+
+- name: Saving VPC ids
+  shell: echo "{{ vpc.vpc_id }}" > "vpc-info.yml"
+  args:
+    chdir: roles/vpc/vars/
+
+- name: Saving swarm Subnet id
+  shell: echo "{{ vpc.subnets[0].id }}" > "swarm-subnet-info.yml"
+  args:
+    chdir: roles/vpc/vars/
+
+- name: Saving mysql Subnet id
+  shell: echo "{{ vpc.subnets[1].id }}" > "mysql-subnet-info.yml"
+  args:
+    chdir: roles/vpc/vars/

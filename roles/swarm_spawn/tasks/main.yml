@@ -1,0 +1,72 @@
+- name: Creating the Docker swarm master
+  local_action:
+    module: ec2
+    region: "{{ vpc_region }}"
+    group: "{{ docker_stack_sg_name }}"
+    keypair: "{{ instance_key_pair }}"
+    instance_type: "{{ swarm_instance_type }}"
+    image: "{{ instance_ami }}"
+    vpc_subnet_id: "{{ lookup('file', 'roles/vpc/vars/swarm-subnet-info.yml') }}"
+    assign_public_ip: True
+    wait: True
+    wait_timeout: 600
+    instance_tags:
+      Name: "{{ swarm_master_instance_name_tag }}"
+  register: swarm_master_box
+
+
+- name: Adding the swarmmaster host details
+  local_action:
+    module: lineinfile
+    dest: "./hosts"
+    insertafter: '^\[swarmmasters\]'
+    line: "{{ swarm_master_instance_name_tag }} ansible_ssh_private_key_file=/etc/ansible/keys/{{ instance_key_pair }}.pem ansible_ssh_host={{ swarm_master_box.instances[0].public_ip }}"
+
+
+- name: Waiting for SSH confirmation from the Swarm master
+  local_action:
+    module: wait_for
+    host: "{{ swarm_master_box.instances[0].public_ip }}"
+    port: 22
+    state: started
+
+
+- name: Adding this to inventory for working on it immediately
+  add_host:
+    hostname: "{{ swarm_master_instance_name_tag }}"
+    ansible_ssh_private_key_file: "/etc/ansible/keys/{{ instance_key_pair }}.pem"
+    ansible_ssh_host: "{{ swarm_master_box.instances[0].public_ip }}"
+    groupname: "{{ swarm_master_host_group_name }}"
+
+
+- name: Creating the Docker swarm instances
+  local_action:
+    module: ec2
+    region: "{{ vpc_region }}"
+    group: "{{ docker_stack_sg_name }}"
+    keypair: "{{ instance_key_pair }}"
+    instance_type: "{{ swarm_instance_type }}"
+    image: "{{ instance_ami }}"
+    vpc_subnet_id: "{{ lookup('file', 'roles/vpc/vars/swarm-subnet-info.yml') }}"
+    assign_public_ip: True
+    wait: True
+    wait_timeout: 600
+    instance_tags:
+      Name: "{{ swarm_one_instance_name_tag }}"
+  register: swarm_one_box
+
+
+- name: Adding the swarm_one host details
+  local_action:
+    module: lineinfile
+    dest: "./hosts"
+    insertafter: '^\[swarmhosts\]'
+    line: "{{ swarm_one_instance_name_tag }} ansible_ssh_private_key_file=/etc/ansible/keys/{{ instance_key_pair }}.pem ansible_ssh_host={{ swarm_one_box.instances[0].public_ip }}"
+
+
+- name: Adding this to inventory for working on it immediately
+  add_host:
+    hostname: "{{ swarm_one_instance_name_tag }}"
+    ansible_ssh_private_key_file: "/etc/ansible/keys/{{ instance_key_pair }}.pem"
+    ansible_ssh_host: "{{ swarm_one_box.instances[0].public_ip }}"
+    groupname: "{{ swarm_hosts_host_group_name }}"

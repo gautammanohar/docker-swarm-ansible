@@ -1,0 +1,22 @@
+---
+#### service.yml
+#
+# Overview: Playbook to that creates the application image and starts the Docker service
+# Applies to: production OR development
+# Description:
+#   This is the longest running playbook. It is designed to do the following :
+#     - Copy all static file (PDFs) to EFS
+#     - Copy the application code to the target machine.
+#     - Configure the application properties based on Environment.
+#     - If environment is "production" then import seed Mysql data.
+#     - Create the Docker image from the given Dockerfile.
+#     - Push the Docker image to Dockerhub
+#     - And finally start the Docker service with the given image.
+###########
+- hosts: swarmmasters
+  remote_user: ubuntu
+  become: true
+  become_method: sudo
+  gather_facts: True
+  roles:
+      - servicestarter

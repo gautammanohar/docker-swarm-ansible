@@ -1,0 +1,45 @@
+---
+- name: Run the equivalent of "apt-get update/upgrade" as a separate step
+  apt:
+    update_cache: yes
+    upgrade: yes
+
+- name: APT | Install Prerequisits for APT
+  apt: name="{{ item }}" state=present
+  with_items:
+    - apt-transport-https
+    - ca-certificates
+
+- name: APT | Add Docker GPG Key
+  apt_key:
+    keyserver: hkp://p80.pool.sks-keyservers.net:80
+    id: 58118E89F3A912897C070ADBF76221572C52609D
+
+#Docker’s APT repository contains Docker 1.7.1 and higher.
+- name: APT | Configure Docker repository
+  apt_repository:
+    repo: "deb https://apt.dockerproject.org/repo {{ ansible_distribution|lower}}-{{ ansible_distribution_release }} main"
+    state: present
+
+#For Ubuntu Trusty, Wily, and Xenial, it’s recommended to install the linux-image-extra kernel package.
+#The linux-image-extra package allows you use the aufs storage driver.
+- name: Ubuntu | Install the linux-image-extra kernal package
+  apt: name="linux-image-extra-{{ ansible_kernel }}" state=present
+  when: ansible_distribution == 'Ubuntu' and ansible_distribution_version in ['14.04','15.10']
+
+# Remove any previous version of docker.
+- name: APT | Remove old repo lxc-docker
+  apt: name=lxc-docker state=absent
+
+
+#Install newer version of docker.
+- name: APT | Install Docker Engine
+  apt: name=docker-engine state=present
+
+#Install python-pip.
+- name: APT | Install Python pip
+  apt: name=python-pip state=present
+
+# Install docker-py
+- name: PIP | Install docker-py
+  pip: name=docker-py state=present

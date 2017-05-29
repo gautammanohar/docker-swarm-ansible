@@ -1,0 +1,40 @@
+- name: Creating the Mysql instance
+  local_action:
+    module: ec2
+    region: "{{ vpc_region }}"
+    group: "{{ mysql_sg_name }}"
+    keypair: "{{ instance_key_pair }}"
+    instance_type: "{{ mysql_instance_type }}"
+    image: "{{ instance_ami }}"
+    vpc_subnet_id: "{{ lookup('file', 'roles/vpc/vars/mysql-subnet-info.yml') }}"
+    assign_public_ip: True
+    wait: True
+    wait_timeout: 600
+    volumes:
+        - device_name: "{{ mysql_instance_root_volume_name }}"
+          volume_size: "{{ mysql_instance_root_volume_size }}"
+    instance_tags:
+      Name: "{{ mysql_instance_name_tag }}"
+  register: mysql_box
+
+- name: Adding the mysql host details
+  local_action:
+    module: lineinfile
+    dest: "./hosts"
+    insertafter: '^\[mysqlhosts\]'
+    line: "{{ mysql_instance_name_tag }} ansible_ssh_private_key_file=/etc/ansible/keys/{{ instance_key_pair }}.pem ansible_ssh_host={{ mysql_box.instances[0].public_ip }} mysql_private_ip={{ mysql_box.instances[0].private_ip }}"
+
+- name: Waiting for SSH confirmation from the Mysql instance
+  local_action:
+    module: wait_for
+    host: "{{ mysql_box.instances[0].public_ip }}"
+    port: 22
+    state: started
+
+- name: Adding this to inventory for working on it immediately
+  add_host:
+    hostname: "{{ mysql_instance_name_tag }}"
+    ansible_ssh_private_key_file: "/etc/ansible/keys/{{ instance_key_pair }}.pem"
+    ansible_ssh_host: "{{ mysql_box.instances[0].public_ip }}"
+    mysql_private_ip: "{{ mysql_box.instances[0].private_ip }}"
+    groupname: "{{ mysql_instance_host_group_name }}"

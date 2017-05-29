@@ -1,0 +1,23 @@
+- name: Set Security id as fact for easy access
+  set_fact:
+    security_group_id: "{{ lookup('file', 'roles/security_groups/vars/sg-info.yml') }}"
+
+# EFS provisioning
+- name: Creating EFS
+  local_action:
+    module: efs
+    region: "{{ vpc_region }}"
+    state: present
+    name: myTestEFS
+    tags:
+      Name: myTestFileSys
+    targets:
+      - subnet_id: "{{ lookup('file', 'roles/vpc/vars/swarm-subnet-info.yml') }}"
+        security_groups: [ '{{ security_group_id }}' ]
+  register: efs_details
+
+
+- name: Saving Mountpoint
+  shell: echo "{{ vpc_subnet_swarm_az }}{{ efs_details['efs']['mount_point'] }}" > "efs-info.yml"
+  args:
+    chdir: roles/efs_spawn/vars/

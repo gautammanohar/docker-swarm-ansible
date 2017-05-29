@@ -1,0 +1,19 @@
+#Install NFS client
+- name: APT | Install NFS client
+  apt: name=nfs-common state=present
+
+# Create the directory where EFS will be mounted
+- name: Create directory to mount EFS
+  file:
+    path: "{{ nfs_mount_dir }}"
+    state: directory
+
+# Mount the NFS file system
+- name: Mount NFS
+  shell: mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2  "{{ lookup('file', 'roles/efs_spawn/vars/efs-info.yml') }}" "{{ nfs_mount_dir }}"
+
+# Add the EFS Mount instructiions to /etc/fstab
+- name: Add EFS mount instructions to /etc/fstab
+  lineinfile:
+    dest: /etc/fstab
+    line: "{{ lookup('file', 'roles/efs_spawn/vars/efs-info.yml') }} {{ nfs_mount_dir }} nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2 0 0"

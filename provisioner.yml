@@ -1,0 +1,28 @@
+---
+#### provisioner.yml
+#
+# Overview: Playbook that provisions the entire AWS infrastructure.
+# Applies to: production OR development
+# Prerequesites: boto, boto3
+# Description:
+#   This playbook and the associated roles run on the localhost.
+#   The sole purpose of this playbook is to create the resources
+#   on AWS on which our application and database stack runs.
+#   The following resources are created :
+#     - New VPC in the given region
+#     - Two subnets within the newly created VPC. (for the swarm and mysql nodes)
+#     - Two security groups. (for the swarm and mysql nodes)
+#     - New EFS file system and a single mount point in the subnet designated for the swarm
+#     - 1 EC2 instance to host the Mysql container.
+#     - 2 EC2 instances as part of the Docker swarm.
+#
+###########
+- hosts: localhost
+  connection: local
+  gather_facts: False
+  roles:
+      - vpc
+      - security_groups
+      - efs_spawn
+      - mysql_spawn
+      - swarm_spawn

@@ -1,0 +1,12 @@
+# Intialize the Swarm
+- name: Initialize the swarm on the Manager/Master
+  shell: docker swarm init --advertise-addr "{{ hostvars['swarm_master_box']['ansible_ssh_host'] }}"
+
+# Get the joining token for the other nodes
+- name: retrieve swarm manager token
+  shell: docker swarm join-token -q manager
+  register: swarm_manager_token
+
+- name: Export joining token to a 'host-fact' type variable
+  set_fact:
+    join_token: "{{ swarm_manager_token['stdout'] }}"

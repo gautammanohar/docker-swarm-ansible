@@ -1,0 +1,3 @@
+# add this node to the swarm
+- name: Join the swarm with the join token
+  shell: docker swarm join --token "{{ hostvars['swarm_master_box']['join_token'] }}" "{{ hostvars['swarm_master_box']['ansible_ssh_host'] }}":2377

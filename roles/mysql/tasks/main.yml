@@ -1,0 +1,14 @@
+# Copy the appropriate Dockerfiles
+- copy:
+    src: "{{ role_path }}/files/docker"
+    dest: /home/ubuntu/mysql
+
+# Create our custom mysql image
+- name: Build the mysql image
+  docker_image:
+     path: /home/ubuntu/mysql/docker/
+     name: docker_mysql
+
+# Start the docker container with a shell script
+- name: Start the docker container for Mysql
+  shell: docker run -d -p 3306:3306 -v db_data:/var/lib/mysql -v db_logs:/var/log/mysql docker_mysql:latest

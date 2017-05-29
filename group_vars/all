@@ -1,0 +1,113 @@
+# Application vars <development|production>
+# If development is used then the Mysql database is recreated
+# everytime a new container in the swarm spins up.
+#
+# If production is used then the database,schema,data is created
+# initially and then not modified during multiple container startups
+app_environment: production
+app_database_name: journals
+app_name: mycustomapp
+app_path: /my_custom_app/upload
+
+# VPC Vars
+vpc_region: us-east-1
+vpc_subnet_swarm_az: us-east-1a
+vpc_subnet_mysql_az: us-east-1b
+vpc_cidr: 10.0.0.0
+vpc_name: docker_swarm_vpc
+
+# Subnet Vars
+swarm_subnet_name: swarm_subnet
+swarm_subnet_tier: swarm
+mysql_subnet_name: mysql_subnet
+mysql_subnet_tier: mysql
+swarm_cidr: 10.0.0.0
+mysql_cidr: 10.0.1.0
+
+# Security Group vars
+mysql_sg_name: mysql_security_group
+docker_stack_sg_name: docker_stack_security_group
+docker_stack_sg_rules:
+  - proto: tcp # ssh
+    from_port: 22
+    to_port: 22
+    cidr_ip: 0.0.0.0/0
+  - proto: tcp # http
+    from_port: 80
+    to_port: 80
+    cidr_ip: 0.0.0.0/0
+  - proto: tcp # https
+    from_port: 443
+    to_port: 443
+    cidr_ip: 0.0.0.0/0
+  - proto: tcp
+    from_port: 5044
+    to_port: 5044
+    cidr_ip: 0.0.0.0/0
+  - proto: tcp  # Logstash TCP Input
+    from_port: 5000
+    to_port: 5000
+    cidr_ip: 0.0.0.0/0
+  - proto: tcp  # Elasticsearch HTTP
+    from_port: 9200
+    to_port: 9200
+    cidr_ip: 0.0.0.0/0
+  - proto: tcp  # Elasticsearch TCP transport
+    from_port: 9300
+    to_port: 9300
+    cidr_ip: 0.0.0.0/0
+  - proto: tcp  # For cluster management communications
+    from_port: 2377
+    to_port: 2377
+    cidr_ip: 0.0.0.0/0
+  - proto: tcp  # For communication among nodes
+    from_port: 7946
+    to_port: 7946
+    cidr_ip: 0.0.0.0/0
+  - proto: udp  # For communication among nodes
+    from_port: 7946
+    to_port: 7946
+    cidr_ip: 0.0.0.0/0
+  - proto: tcp  # For communication among nodes
+    from_port: 4789
+    to_port: 4789
+    cidr_ip: 0.0.0.0/0
+  - proto: tcp  # For EFS
+    from_port: 2049
+    to_port: 2049
+    cidr_ip: 0.0.0.0/0
+
+# Common EC2 Instance Vars
+instance_ami: ami-49c9295f
+instance_key_pair: <keypair_name>
+
+# Mysql Instance Vars
+mysql_instance_type: t2.small
+mysql_instance_name_tag: mysql_box
+mysql_instance_host_group_name: mysqlhosts
+mysql_instance_root_volume_name: /dev/sda1
+mysql_instance_root_volume_size: 10
+
+# Swarm Instance vars
+swarm_instance_type: t2.small
+swarm_master_instance_name_tag: swarm_master_box
+swarm_master_host_group_name: swarmmasters
+swarm_one_instance_name_tag: swarm_one_box
+swarm_hosts_host_group_name: swarmhosts
+
+# NFS vars
+nfs_mount_dir: /app/upload
+
+# Mysql vars
+mysql_user: root
+mysql_root_pass: rootpass
+
+# Docker vars
+docker_tmp_dir: /tmp/dockerapp/
+docker_hub_repo: gautammanohar/{{ app_name }}
+docker_service_name: mycustomservice
+docker_service_replicas: 4
+docker_service_reserve_cpu: 0.000
+docker_service_reserve_memory: 0 B
+docker_service_limit_cpu: 0.000
+docker_service_limit_memory: 0 B

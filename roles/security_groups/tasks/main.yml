@@ -1,0 +1,41 @@
+# Creating the security group for the swarm nodes
+- name: Creating security group for swarm nodes
+  local_action:
+    module: ec2_group
+    name: "{{ docker_stack_sg_name }}"
+    description: "Docker Stack security group"
+    region: "{{ vpc_region }}"
+    vpc_id: "{{ lookup('file', 'roles/vpc/vars/vpc-info.yml') }}"
+    state: present
+    rules: "{{ docker_stack_sg_rules }}"
+  register: docker_stack_sg
+
+- name: Saving Swarm Security group ids
+  shell: echo "{{ docker_stack_sg.group_id }}" > "sg-info.yml"
+  args:
+    chdir: "{{ role_path }}/vars/"
+
+# Creating the security group for the mysql Instance
+- name: Creating security group for Mysql Instance
+  local_action:
+    module: ec2_group
+    name: "{{ mysql_sg_name }}"
+    description: "Mysql security group"
+    region: "{{ vpc_region }}"
+    vpc_id: "{{ lookup('file', 'roles/vpc/vars/vpc-info.yml') }}"
+    state: present
+    rules:
+      - proto: tcp
+        from_port: 3306
+        to_port: 3306
+        group_id: "{{ lookup('file', 'roles/security_groups/vars/sg-info.yml') }}"
+      - proto: tcp # ssh
+        from_port: 22
+        to_port: 22
+        cidr_ip: 0.0.0.0/0
+  register: mysql_sg
+
+- name: Saving Mysql Security group id
+  shell: echo "{{ mysql_sg.group_id }}" > "mysql-sg-info.yml"
+  args:
+    chdir: "{{ role_path }}/vars/"

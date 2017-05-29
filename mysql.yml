@@ -1,0 +1,24 @@
+---
+#### mysql.yml
+#
+# Overview: Playbook that configures an EC2 instance to host the Mysql container.
+# Applies to: production OR development
+# Description:
+#   This playbook extracts the custom Dockerfile and creates an image
+#   on the host machine. Custom Mysql logging configuration is
+#   designed to enable maximum logging i.e
+#      - mysql_general_log
+#      - mysql_slow_query_log
+#      - mysql_error_log
+#   Once the Docker image has been created Ansible fires of the container
+#   from with the "latest" tag.
+#
+###########
+- hosts: mysqlhosts
+  remote_user: ubuntu
+  become: true
+  become_method: sudo
+  gather_facts: True
+  roles:
+      - common
+      - mysql

@@ -1,0 +1,16 @@
+---
+#### fullstack.yml
+#
+# Overview: Playbook to include all constituent playbooks that
+# create our Docker Swarm stack on AWS
+# Applies to: production OR development
+# Description:
+#   This is simply an envelope playbook that includes the other
+#   playbooks if user intends to create the entire stack with
+#   a single command.
+#
+###########
+- include: provisioner.yml
+- include: mysql.yml
+- include: swarm.yml
+- include: service.yml
